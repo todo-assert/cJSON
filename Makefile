@@ -6,13 +6,15 @@ UTILS_LIBNAME = libcjson_utils
 LIBJSON_API = libjson_api
 CJSON_TEST = cJSON_test
 
-CJSON_TEST_SRC = cJSON.c hikeentv.c
+CJSON_TEST_SRC = cJSON.c supporthikeentv.c
 
 LDLIBS = -lm
 
 LIBVERSION = 1.7.12
 CJSON_SOVERSION = 1
 UTILS_SOVERSION = 1
+
+GIT_VERSION = $(shell git log --format=%h -n1)
 
 CJSON_SO_LDFLAG=-Wl,-soname=$(CJSON_LIBNAME).so.$(CJSON_SOVERSION)
 UTILS_SO_LDFLAG=-Wl,-soname=$(UTILS_LIBNAME).so.$(UTILS_SOVERSION)
@@ -35,6 +37,9 @@ ifeq "$(IS_GCC_ABOVE_MIN_VERSION)" "1"
 else
     CFLAGS += -fstack-protector
 endif
+
+CFLAGS += -D'LIBVERSION="$(LIBVERSION)"'
+CFLAGS += -D'GIT_VERSION="$(GIT_VERSION)"'
 
 R_CFLAGS = -fPIC -pedantic -Wall -Werror -Wstrict-prototypes -Wwrite-strings -Wshadow -Winit-self -Wcast-align -Wformat=2 -Wmissing-prototypes -Wstrict-overflow=2 -Wc++-compat -Wundef -Wswitch-default -Wconversion $(CFLAGS)
 

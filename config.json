@@ -1,0 +1,51 @@
+
+
+{
+	"support":
+	{
+		"panel":
+		[
+			"HK_DEFUALT_4K2K_VBY1",
+			"HK_DEFUALT_1920_LVDS",
+			"HK_DEFUALT_1920_LVDS",
+			{"path":"common/panel"}
+		],
+		"irmap":
+		[
+			"HKFAC",
+			"HK10D",
+			{"path":"common/panel"}
+		],
+		"keypad":
+		[
+			"RTD_ADC_CHANNEL0",
+			"RTD_ADC_CHANNEL1",
+			{"path":"common/keypad"}
+		]
+	},
+
+
+	"config":
+	{
+		"panel":["HK_DEFUALT_4K2K_VBY1"],
+		"irmap":["HKFAC","HK10D"],
+		"keypad":
+		[
+			{
+				"start":0,
+				"range":31,
+				"function":"right",
+				"multi-funtion":"vol-inc",
+				"channel":"RTD_ADC_CHANNEL0"
+			},
+			{
+				"start":32,
+				"range":32,
+				"function":"left",
+				"multi-funtion":"vol-dec",
+				"channel":"RTD_ADC_CHANNEL0"
+			}
+		]
+	}
+}
+
