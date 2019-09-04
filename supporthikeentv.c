@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 	}
 
 	cJSON_AddItemReferenceToObject(top, "company", cJSON_CreateString("SHENZHEN HIKEEN TECHNOLOGY CO.,LTD"));
-	cJSON_AddItemReferenceToObject(top, "version", cJSON_CreateString("JSON " LIBVERSION));
+	cJSON_AddItemReferenceToObject(top, "version", cJSON_CreateString("CJSON " LIBVERSION));
 	cJSON_AddItemReferenceToObject(top, "tools version", cJSON_CreateString(GIT_VERSION));
 	cJSON_AddItemReferenceToObject(top, "author", cJSON_CreateString("longqi"));
 	cJSON_AddItemReferenceToObject(top, "email", cJSON_CreateString("1218715400@qq.com"));
