@@ -13,17 +13,16 @@
 
 #include <stdarg.h>
 #include <linux/types.h>
-#include "linux/string.h"
-#include <ctype.h>
+#include <linux/string.h>
+#include <linux/ctype.h>
 #include <errno.h>
-#include <stdint.h>
 
+#include <common.h>
+#if !defined (CONFIG_PANIC_HANG)
+#include <command.h>
+#endif
 
-typedef unsigned long ulong;
-typedef unsigned char u8;
-typedef signed short s16;
-
-typedef __kernel_ptrdiff_t	ptrdiff_t;
+#include <div64.h>
 # define NUM_TYPE long long
 #define noinline __attribute__((noinline))
 
@@ -33,63 +32,6 @@ typedef __kernel_ptrdiff_t	ptrdiff_t;
 const char hex_asc[] = "0123456789abcdef";
 #define hex_asc_lo(x)   hex_asc[((x) & 0x0f)]
 #define hex_asc_hi(x)   hex_asc[((x) & 0xf0) >> 4]
-
-#define likely(x)	(x)
-#define unlikely(x)	(x)
-
-
-uint32_t __div64_32(uint64_t *n, uint32_t base)
-{
-	uint64_t rem = *n;
-	uint64_t b = base;
-	uint64_t res, d = 1;
-	uint32_t high = rem >> 32;
-
-	/* Reduce the thing a bit first */
-	res = 0;
-	if (high >= base) {
-		high /= base;
-		res = (uint64_t) high << 32;
-		rem -= (uint64_t) (high*base) << 32;
-	}
-
-	while ((int64_t)b > 0 && b < rem) {
-		b = b+b;
-		d = d+d;
-	}
-
-	do {
-		if (rem >= b) {
-			rem -= b;
-			res += d;
-		}
-		b >>= 1;
-		d >>= 1;
-	} while (d);
-
-	*n = res;
-	return rem;
-}
-
-# define do_div(n,base) ({				\
-	uint32_t __base = (base);			\
-	uint32_t __rem;					\
-	(void)(((typeof((n)) *)0) == ((uint64_t *)0));	\
-	if (((n) >> 32) == 0) {			\
-		__rem = (uint32_t)(n) % __base;		\
-		(n) = (uint32_t)(n) / __base;		\
-	} else						\
-		__rem = __div64_32(&(n), __base);	\
-	__rem;						\
- })
-
-
-char *skip_spaces(const char *str)
-{
-	while (isspace(*str))
-		++str;
-	return (char *)str;
-}
 
 static inline char *pack_hex_byte(char *buf, u8 byte)
 {
@@ -340,135 +282,6 @@ static noinline char* put_dec(char *buf, unsigned NUM_TYPE num)
 #define ADDCH(str, ch)	(*(str)++ = (ch))
 #endif
 
-static long long micro_pow(int precision)
-{
-	int i;
-	long long ret = 1;
-	for(i=0;i<precision;i++) {
-		ret *= 10;
-	}
-
-	return ret;
-}
-static char *number_double(char *buf, char *end, double number_double,
-		int base, int size, int precision_ex, int type)
-{
-	/* we are called with base 8, 10 or 16, only, thus don't need "G..."  */
-	static const char digits[16] = "0123456789ABCDEF"; /* "GHIJKLMNOPQRSTUVWXYZ"; */
-
-	char tmp[66];
-	char sign;
-	char locase;
-	int need_pfx = ((type & SPECIAL) && base != 10);
-	int i;
-
-	long long num;
-	int precision;
-	if(precision_ex == -1)
-		precision = 16;
-	else
-		precision = precision_ex;
-	if(precision==0)
-		num = (int)number_double;
-	else
-		num = number_double * micro_pow(precision);
-
-	/* locase = 0 or 0x20. ORing digits or letters with 'locase'
-	 * produces same digits or (maybe lowercased) letters */
-	locase = (type & SMALL);
-	if (type & LEFT)
-		type &= ~ZEROPAD;
-	sign = 0;
-	if (type & SIGN) {
-		if ((signed NUM_TYPE) num < 0) {
-			sign = '-';
-			num = - (signed NUM_TYPE) num;
-			size--;
-		} else if (type & PLUS) {
-			sign = '+';
-			size--;
-		} else if (type & SPACE) {
-			sign = ' ';
-			size--;
-		}
-	}
-	if (need_pfx) {
-		size--;
-		if (base == 16)
-			size--;
-	}
-
-	/* generate full string in tmp[], in reverse order */
-	i = 0;
-	if (num == 0)
-		tmp[i++] = '0';
-	/* Generic code, for any base:
-	else do {
-		tmp[i++] = (digits[do_div(num,base)] | locase);
-	} while (num != 0);
-	*/
-	else if (base != 10) { /* 8 or 16 */
-		int mask = base - 1;
-		int shift = 3;
-		if (base == 16) shift = 4;
-		do {
-			tmp[i++] = (digits[((unsigned char)num) & mask] | locase);
-			num >>= shift;
-		} while (num);
-	} else { /* base 10 */
-		i = put_dec(tmp, num) - tmp;
-		if(number_double<1 && number_double>0){
-			tmp[i] = '0';
-			i++;
-		}
-	}
-
-	/* printing 100 using %2d gives "100", not "00" */
-	if (i > precision)
-		precision = i;
-	/* leading space padding */
-	size -= precision;
-	if (!(type & (ZEROPAD + LEFT))) {
-		while (--size >= 0)
-			ADDCH(buf, ' ');
-	}
-	/* sign */
-	if (sign)
-		ADDCH(buf, sign);
-	/* "0x" / "0" prefix */
-	if (need_pfx) {
-		ADDCH(buf, '0');
-		if (base == 16)
-			ADDCH(buf, 'X' | locase);
-	}
-	/* zero or space padding */
-	if (!(type & LEFT)) {
-		char c = (type & ZEROPAD) ? '0' : ' ';
-
-		while (--size >= 0)
-			ADDCH(buf, c);
-	}
-	/* hmm even more zero padding? 
-	while (i <= --precision)
-		ADDCH(buf, '0');
-	*/
-	/* actual digits of result */
-	if(precision_ex == -1)
-		precision = 16;
-	else
-		precision = precision_ex;
-	while (--i >= 0) {
-		ADDCH(buf, tmp[i]);
-		if(precision==i) {
-			ADDCH(buf, '.');
-		}
-	}
-	/* trailing space padding */
-	while (--size >= 0)
-		ADDCH(buf, ' ');
-	return buf;	
-}
-
 static char *number(char *buf, char *end, unsigned NUM_TYPE num,
 		int base, int size, int precision, int type)
 {
@@ -701,11 +514,150 @@ static char *pointer(const char *fmt, char *buf, char *end, void *ptr,
 		      precision, flags);
 }
 
+static long long micro_pow(int precision)
+{
+	int i;
+	long ret = 1;
+	for(i=0;i<precision;i++) {
+		ret *= 10;
+	}
+
+	return ret;
+}
+static __attribute__((unused)) char *number_double(char *buf, char *end, double num_double,
+		int base, int size, int precision_ex, int type)
+{
+	/* we are called with base 8, 10 or 16, only, thus don't need "G..."  */
+	static const char digits[16] = "0123456789ABCDEF"; /* "GHIJKLMNOPQRSTUVWXYZ"; */
+
+	char tmp[66];
+	char sign;
+	char locase;
+	int need_pfx = ((type & SPECIAL) && base != 10);
+	int i;
+
+	long num;
+	int precision;
+	if(precision_ex == -1)
+		precision = 7;
+	else
+		precision = precision_ex;
+	if(precision==0)
+		num = (int)num_double;
+	else
+		num = num_double * micro_pow(precision);
+
+	// printf(">>>>>>>>>>> %d, %ld\n", (int)num_double, num);
+	/* locase = 0 or 0x20. ORing digits or letters with 'locase'
+	 * produces same digits or (maybe lowercased) letters */
+	locase = (type & SMALL);
+	if (type & LEFT)
+		type &= ~ZEROPAD;
+	sign = 0;
+	if (type & SIGN) {
+		if ((signed NUM_TYPE) num < 0) {
+			sign = '-';
+			num = - (signed NUM_TYPE) num;
+			size--;
+		} else if (type & PLUS) {
+			sign = '+';
+			size--;
+		} else if (type & SPACE) {
+			sign = ' ';
+			size--;
+		}
+	}
+	if (need_pfx) {
+		size--;
+		if (base == 16)
+			size--;
+	}
+
+	/* generate full string in tmp[], in reverse order */
+	i = 0;
+	if (num == 0)
+		tmp[i++] = '0';
+	/* Generic code, for any base:
+	else do {
+		tmp[i++] = (digits[do_div(num,base)] | locase);
+	} while (num != 0);
+	*/
+	else if (base != 10) { /* 8 or 16 */
+		int mask = base - 1;
+		int shift = 3;
+		if (base == 16) shift = 4;
+		do {
+			tmp[i++] = (digits[((unsigned char)num) & mask] | locase);
+			num >>= shift;
+		} while (num);
+	} else { /* base 10 */
+		i = put_dec(tmp, num) - tmp;
+		if(num_double<1 && num_double>0){
+			tmp[i] = '0';
+			i++;
+		}
+	}
+
+	// printf(">>>>>>>>>>> %s\n", tmp);
+	/* printing 100 using %2d gives "100", not "00" */
+	if (i > precision)
+		precision = i;
+	/* leading space padding */
+	size -= precision;
+	if (!(type & (ZEROPAD + LEFT))) {
+		while (--size >= 0)
+			ADDCH(buf, ' ');
+	}
+	// printf(">>>>>>>>>>> %d\n", __LINE__);
+	/* sign */
+	if (sign)
+		ADDCH(buf, sign);
+	// printf(">>>>>>>>>>> %d\n", __LINE__);
+	/* "0x" / "0" prefix */
+	if (need_pfx) {
+		ADDCH(buf, '0');
+		if (base == 16)
+			ADDCH(buf, 'X' | locase);
+	}
+	// printf(">>>>>>>>>>> %d\n", __LINE__);
+	/* zero or space padding */
+	if (!(type & LEFT)) {
+		char c = (type & ZEROPAD) ? '0' : ' ';
+
+		while (--size >= 0)
+			ADDCH(buf, c);
+	}
+	/* hmm even more zero padding? 
+	while (i <= --precision)
+		ADDCH(buf, '0');
+	*/
+	// printf(">>>>>>>>>>> %d\n", __LINE__);
+	/* actual digits of result */
+	if(precision_ex == -1)
+		precision = 16;
+	else
+		precision = precision_ex;
+	// printf(">>>>>>>>>>> %d\n", __LINE__);
+	while (--i >= 0) {
+		ADDCH(buf, tmp[i]);
+		if(precision==i) {
+			ADDCH(buf, '.');
+		}
+	}
+
+	// printf(">>>>>>>>>>> %d\n", __LINE__);
+	/* trailing space padding */
+	while (--size >= 0)
+		ADDCH(buf, ' ');
+	return buf;	
+}
+
+
 static int vsnprintf_internal(char *buf, size_t size, const char *fmt,
 			      va_list args)
 {
 	unsigned NUM_TYPE num;
-	double double_num = 0.L;
+	__attribute__((unused)) double double_num = 0.L;
 	int base;
 	char *str;
 
@@ -775,6 +727,7 @@ static int vsnprintf_internal(char *buf, size_t size, const char *fmt,
 			if (precision < 0)
 				precision = 0;
 		}
+
 		/* get the conversion qualifier */
 		qualifier = -1;
 		if (*fmt == 'h' || *fmt == 'l' || *fmt == 'L' ||
@@ -829,15 +782,9 @@ static int vsnprintf_internal(char *buf, size_t size, const char *fmt,
 			ADDCH(str, '%');
 			continue;
 
-		case 'g':
-			qualifier = 'g';
-			flags |= SIGN;
-			base = 10;
-			break;
-
 		/* integer number formats - set up the flags and "break" */
 		case 'o':
-			flags |= SIGN;
+			base = 8;
 			break;
 
 		case 'x':
@@ -851,6 +798,11 @@ static int vsnprintf_internal(char *buf, size_t size, const char *fmt,
 			flags |= SIGN;
 		case 'u':
 			break;
+		case 'g':
+			qualifier = 'g';
+			flags |= SIGN;
+			base = 10;
+			break;
 
 		default:
 			ADDCH(str, '%');
@@ -860,7 +812,6 @@ static int vsnprintf_internal(char *buf, size_t size, const char *fmt,
 				--fmt;
 			continue;
 		}
-		printf("xxx%c\n", qualifier);
 		if (qualifier == 'L')  /* "quad" for 64 bit variables */
 			num = va_arg(args, unsigned long long);
 		else if (qualifier == 'l') {
@@ -869,10 +820,10 @@ static int vsnprintf_internal(char *buf, size_t size, const char *fmt,
 				num = (signed long) num;
 		} else if (qualifier == 'Z' || qualifier == 'z') {
 			num = va_arg(args, size_t);
-		} else if (qualifier == 't') {
-			num = va_arg(args, ptrdiff_t);
 		} else if (qualifier == 'g') {
 			double_num = va_arg(args, double);
+		} else if (qualifier == 't') {
+			num = va_arg(args, ptrdiff_t);
 		} else if (qualifier == 'h') {
 			num = (unsigned short) va_arg(args, int);
 			if (flags & SIGN)
@@ -883,11 +834,9 @@ static int vsnprintf_internal(char *buf, size_t size, const char *fmt,
 				num = (signed int) num;
 		}
 		if( qualifier == 'g' ) {
-			printf("number = %f\n", double_num);
 			str = number_double(str, end, double_num, base, field_width, precision,
-				     flags);
+			     flags);
 		} else {
-			printf("number = %d\n", num);
 			str = number(str, end, num, base, field_width, precision,
 				     flags);
 		}
@@ -979,14 +928,12 @@ int sprintf(char * buf, const char *fmt, ...)
 	va_end(args);
 	return i;
 }
-/*
+
 static char _tolower(const char c)
 {
 	return c | 0x20;
 }
 
-
-*/
 int vsscanf(const char *buf, const char *fmt, va_list args)  
 {  
      const char *str = buf;  
@@ -1230,7 +1177,12 @@ void panic(const char *fmt, ...)
 	vprintf(fmt, args);
 	putc('\n');
 	va_end(args);
+#if defined (CONFIG_PANIC_HANG)
+	hang();
+#else
+	udelay (100000);	/* allow messages to go out */
 	//do_reset (NULL, 0, 0, NULL);
+#endif
 	while (1)
 		;
 }
@@ -1255,14 +1207,4 @@ char *simple_itoa(ulong i)
 		i /= 10;
 	} while (i > 0);
 	return p + 1;
-}
-
-
-int main (void)
-{
-	char buf[1024];
-
-	sprintf(buf, "%d\n%1.17g", 314, -10.104);
-	printf("%s\n", buf);
-	return 0;
 }
