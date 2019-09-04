@@ -1,10 +1,12 @@
 CJSON_OBJ = cJSON.o
 UTILS_OBJ = cJSON_Utils.o
+LIBJSON_API_OBJ = jsonapi.o
 CJSON_LIBNAME = libcjson
 UTILS_LIBNAME = libcjson_utils
+LIBJSON_API = libjson_api
 CJSON_TEST = cJSON_test
 
-CJSON_TEST_SRC = cJSON.c test.c
+CJSON_TEST_SRC = cJSON.c hikeentv.c
 
 LDLIBS = -lm
 
@@ -34,7 +36,7 @@ else
     CFLAGS += -fstack-protector
 endif
 
-R_CFLAGS = -fPIC -std=c89 -pedantic -Wall -Werror -Wstrict-prototypes -Wwrite-strings -Wshadow -Winit-self -Wcast-align -Wformat=2 -Wmissing-prototypes -Wstrict-overflow=2 -Wcast-qual -Wc++-compat -Wundef -Wswitch-default -Wconversion $(CFLAGS)
+R_CFLAGS = -fPIC -pedantic -Wall -Werror -Wstrict-prototypes -Wwrite-strings -Wshadow -Winit-self -Wcast-align -Wformat=2 -Wmissing-prototypes -Wstrict-overflow=2 -Wc++-compat -Wundef -Wswitch-default -Wconversion $(CFLAGS)
 
 uname := $(shell sh -c 'uname -s 2>/dev/null || echo false')
 
@@ -54,6 +56,7 @@ CJSON_SHARED = $(CJSON_LIBNAME).$(SHARED)
 CJSON_SHARED_VERSION = $(CJSON_LIBNAME).$(SHARED).$(LIBVERSION)
 CJSON_SHARED_SO = $(CJSON_LIBNAME).$(SHARED).$(CJSON_SOVERSION)
 CJSON_STATIC = $(CJSON_LIBNAME).$(STATIC)
+LIBJSON_API_STATIC = $(LIBJSON_API).$(STATIC)
 
 #cJSON_Utils library names
 UTILS_SHARED = $(UTILS_LIBNAME).$(SHARED)
@@ -69,7 +72,7 @@ all: shared static tests
 
 shared: $(CJSON_SHARED) $(UTILS_SHARED)
 
-static: $(CJSON_STATIC) $(UTILS_STATIC)
+static: $(CJSON_STATIC) $(UTILS_STATIC) $(LIBJSON_API_STATIC)
 
 tests: $(CJSON_TEST)
 
@@ -86,6 +89,8 @@ $(CJSON_TEST): $(CJSON_TEST_SRC) cJSON.h
 
 #static libraries
 #cJSON
+$(LIBJSON_API_STATIC): $(LIBJSON_API_OBJ)
+	$(AR) rcs $@ $<
 $(CJSON_STATIC): $(CJSON_OBJ)
 	$(AR) rcs $@ $<
 #cJSON_Utils
