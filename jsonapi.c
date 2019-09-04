@@ -1,34 +1,5 @@
 
-/* disable warnings about old C89 functions in MSVC */
-#if !defined(_CRT_SECURE_NO_DEPRECATE) && defined(_MSC_VER)
-#define _CRT_SECURE_NO_DEPRECATE
-#endif
-
-#ifdef __GNUC__
-#pragma GCC visibility push(default)
-#endif
-#if defined(_MSC_VER)
-#pragma warning (push)
-/* disable warning about single line comments in system headers */
-#pragma warning (disable : 4001)
-#endif
-
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <limits.h>
-#include <ctype.h>
-
-#ifdef ENABLE_LOCALES
-#include <locale.h>
-#endif
-
-#if defined(_MSC_VER)
-#pragma warning (pop)
-#endif
-#ifdef __GNUC__
-#pragma GCC visibility pop
-#endif
+#include <linux/string.h>
 
 #include "cJSON.h"
 

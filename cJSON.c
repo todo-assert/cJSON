@@ -23,21 +23,23 @@
 /* cJSON */
 /* JSON parser in C. */
 
-/* disable warnings about old C89 functions in MSVC */
-#if !defined(_CRT_SECURE_NO_DEPRECATE) && defined(_MSC_VER)
-#define _CRT_SECURE_NO_DEPRECATE
-#endif
 
-#ifdef __GNUC__
-#pragma GCC visibility push(default)
-#endif
-#if defined(_MSC_VER)
-#pragma warning (push)
-/* disable warning about single line comments in system headers */
-#pragma warning (disable : 4001)
-#endif
+#include <linux/string.h>
+#include <common.h>
+#include <malloc.h>
 
-#include <string.h>
+extern int tolower(int c);
+extern int toupper(int c);
+extern double strtod(const char *str,char **endptr);
+extern int sscanf(const char *buf, const char *fmt, ...);
+
+
+#define INT_MAX     ((int)(~0U>>1))
+#define INT_MIN     (-INT_MAX - 1)
+#define LLONG_MAX   ((long long)(~0ULL>>1))
+
+
+/*
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -54,6 +56,7 @@
 #ifdef __GNUC__
 #pragma GCC visibility pop
 #endif
+*/
 
 #include "cJSON.h"
 
@@ -504,13 +507,13 @@ static cJSON_bool print_number(const cJSON * const item, printbuffer * const out
     else
     {
         /* Try 15 decimal places of precision to avoid nonsignificant nonzero digits */
-        length = sprintf((char*)number_buffer, "%1.15g", d);
+        length = sprintf((char*)number_buffer, "%1.6g", d);
 
         /* Check whether the original double can be recovered */
-        if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || ((double)test != d))
+        if ((sscanf((char*)number_buffer, "%g", &test) != 1) || ((double)test != d))
         {
             /* If not, print with 17 decimal places of precision */
-            length = sprintf((char*)number_buffer, "%1.17g", d);
+            length = sprintf((char*)number_buffer, "%1.7g", d);
         }
     }
 
