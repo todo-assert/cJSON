@@ -98,9 +98,13 @@ int main(int argc, char **argv) {
 						dump_configs(sub_item->string, main_item);
 					}
 				}
+				/*
 				cJSON_ReplaceItemViaPointer(main_object, cJSON_GetObjectItem(main_object,"support"), cJSON_Duplicate(cJSON_GetObjectItem(main_object,"config"), 1));
 				cJSON_ReplaceItemInObject(main_object, "config", cJSON_CreateString("hello"));
+				*/
 				out=cJSON_Print(json);
+				if(json==NULL) 
+					return -1;
 				printf("\n%s\n", out);
 				break;
 			#if 0

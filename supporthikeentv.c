@@ -163,6 +163,7 @@ int main(int argc, char **argv)
 		fwrite(out, sizeof(char), strlen(out), fp);
 		fclose(fp);
 	}
+	ret = 0;
 
 	return ret;
 }
