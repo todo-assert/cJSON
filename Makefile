@@ -5,7 +5,9 @@ CJSON_LIBNAME = libcjson
 UTILS_LIBNAME = libcjson_utils
 LIBJSON_API = libjson_api
 CJSON_TEST = cJSON_test
+CJSON_TEST_PARSE = cJSON_parse
 
+CJSON_TEST_PARSE_SRC = cJSON.c hikeentv.c
 CJSON_TEST_SRC = cJSON.c supporthikeentv.c
 
 LDLIBS = -lm
@@ -79,7 +81,7 @@ shared: $(CJSON_SHARED) $(UTILS_SHARED)
 
 static: $(CJSON_STATIC) $(UTILS_STATIC) $(LIBJSON_API_STATIC)
 
-tests: $(CJSON_TEST)
+tests: $(CJSON_TEST) $(CJSON_TEST_PARSE)
 
 test: tests
 	./$(CJSON_TEST)
@@ -91,6 +93,9 @@ test: tests
 #cJSON
 $(CJSON_TEST): $(CJSON_TEST_SRC) cJSON.h
 	$(CC) $(R_CFLAGS) $(CJSON_TEST_SRC)  -o $@ $(LDLIBS) -I.
+
+$(CJSON_TEST_PARSE): $(CJSON_TEST_PARSE_SRC) cJSON.h
+	$(CC) $(R_CFLAGS) $(CJSON_TEST_PARSE_SRC)  -o $@ $(LDLIBS) -I.
 
 #static libraries
 #cJSON
