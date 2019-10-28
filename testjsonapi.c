@@ -32,11 +32,12 @@ unsigned long simple_strtoul(const char *cp,char **endp,unsigned int base)
 	return result;
 }
 
-
+extern unsigned long simple_strtoul(const char *cp,char **endp,unsigned int base);
 int main (int argc, char **argv)
 {
 	int size = 0;
 	char *str = argv[1];
+	char *hex = argv[2];
 	char *end;
 	size = strlen(str);
 	int i = 0;

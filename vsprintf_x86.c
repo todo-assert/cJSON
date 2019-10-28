@@ -13,7 +13,7 @@
 
 #include <stdarg.h>
 #include <linux/types.h>
-#include "linux/string.h"
+#include "string.h"
 #include <ctype.h>
 #include <errno.h>
 #include <stdint.h>
@@ -1261,8 +1261,12 @@ char *simple_itoa(ulong i)
 int main (void)
 {
 	char buf[1024];
+	char *hex = "0xDEADBEEF";
+	char *end;
 
 	sprintf(buf, "%d\n%1.17g", 314, -10.104);
 	printf("%s\n", buf);
+	printf("%s %x\n", hex, simple_strtoul(hex, &end, 0));
+	printf("%s %f\n", hex, simple_strtoul("3.0000000", &end, 0));
 	return 0;
 }

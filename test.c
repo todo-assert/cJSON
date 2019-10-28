@@ -254,6 +254,36 @@ static void create_objects(void)
         exit(EXIT_FAILURE);
     }
     cJSON_Delete(root);
+  
+  //////////////
+  root = cJSON_CreateObject();
+  cJSON *hikeentv = cJSON_CreateObject();
+  cJSON *config = cJSON_CreateObject();
+  cJSON *panel = cJSON_CreateArray();
+  cJSON_AddItemToObject(root, "hikeentv", hikeentv);
+  cJSON_AddItemToObject(hikeentv, "config", config);
+  cJSON_AddItemToObject(config, "panel", panel);
+  cJSON_AddItemToArray(panel, cJSON_CreateString("a.fw"));
+  cJSON_AddItemToArray(panel, cJSON_CreateString("b.fw"));
+  cJSON_AddItemToArray(panel, cJSON_CreateString("c.fw"));
+    if (print_preallocated(root) != 0) {
+        cJSON_Delete(root);
+        exit(EXIT_FAILURE);
+    }
+  
+  while(cJSON_GetArraySize(panel)) {
+    cJSON_DeleteItemFromArray(panel, 0);
+  }
+  
+    if (print_preallocated(root) != 0) {
+        cJSON_Delete(root);
+        exit(EXIT_FAILURE);
+    }
+    cJSON_Delete(root);
+  ////////////
+  
+  
+  
 }
 
 int CJSON_CDECL main(void)

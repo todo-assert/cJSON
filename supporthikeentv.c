@@ -21,7 +21,7 @@
 #endif /* DT_ISREG */
 
 
-static int add_config(char *search_path, cJSON *item)
+static __attribute__((unused)) int add_config(char *search_path, cJSON *item)
 {
 	int size = 0;
 	DIR *dir;
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	__attribute__((unused)) char *genfile = argv[3];
 	__attribute__((unused)) char *out;
 	FILE *fp;
-	cJSON *top, *root, *support, *item, *input, *object, *config, *childobj;
+	__attribute__((unused)) cJSON *top, *root, *support, *item, *input, *object, *config, *childobj;
 	if( argc < 2 ) {
 		print_usage(argv[0]);
 		return ret;
@@ -79,8 +79,9 @@ int main(int argc, char **argv)
 	}
 	top = 	cJSON_CreateObject();
 	root = 	cJSON_CreateObject();
-	support = 	cJSON_CreateObject();
 	config = 	cJSON_CreateObject();
+#if 0
+	support = 	cJSON_CreateObject();
 	while((dirent = readdir(dir))!=NULL) {
 		if( strcmp(".", dirent->d_name) == 0 || strcmp("..", dirent->d_name) == 0 ) continue ;
 		if(DT_ISDIR(dirent->d_type)) {
@@ -92,6 +93,7 @@ int main(int argc, char **argv)
 		}
 	}
 	closedir(dir);
+#endif
 
 	cJSON_AddItemReferenceToObject(top, "company", cJSON_CreateString("SHENZHEN HIKEEN TECHNOLOGY CO.,LTD"));
 	cJSON_AddItemReferenceToObject(top, "version", cJSON_CreateString("CJSON " LIBVERSION));
@@ -99,7 +101,7 @@ int main(int argc, char **argv)
 	cJSON_AddItemReferenceToObject(top, "author", cJSON_CreateString("longqi"));
 	cJSON_AddItemReferenceToObject(top, "email", cJSON_CreateString("1218715400@qq.com"));
 	cJSON_AddItemToObject(top, "hikeentv", root);
-	cJSON_AddItemToObject(root, "support", support);
+	// cJSON_AddItemToObject(root, "support", support);
 	cJSON_AddItemToObject(root, "config", config);
 
 // add all json
@@ -127,8 +129,9 @@ int main(int argc, char **argv)
 						for(i=0;i<itemsize;i++) {
 							childobj = cJSON_GetArrayItem(object, i);
 							if(childobj)
-								cJSON_AddItemToArray(config, childobj);
+								cJSON_AddItemToArray(config, cJSON_Duplicate(childobj, 1));
 						}
+						cJSON_Delete(input);
 					}
 					free(pbuf);
 				}
