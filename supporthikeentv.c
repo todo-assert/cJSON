@@ -46,7 +46,7 @@ extern int print_usage(char *target);
 int print_usage(char *target)
 {
 	printf(
-		"%s common_dirent config_dirent\n\n", target
+		"%s order_dirent config_dirent\n\n", target
 		);
 	return 0;
 }
@@ -63,12 +63,14 @@ int main(int argc, char **argv)
 	size_t len;
 	char *pbuf;
 	__attribute__((unused)) char *search_path = argv[1];
-	__attribute__((unused)) char *inputfile = argv[2];
+	__attribute__((unused)) char *order_path = argv[1];
+	// __attribute__((unused)) char *inputfile = argv[2];
 	__attribute__((unused)) char *input_path = argv[2];
 	__attribute__((unused)) char *genfile = argv[3];
 	__attribute__((unused)) char *out;
 	FILE *fp;
 	__attribute__((unused)) cJSON *top, *root, *support, *item, *input, *object, *config, *childobj;
+	__attribute__((unused)) cJSON *check = NULL;
 	if( argc < 2 ) {
 		print_usage(argv[0]);
 		return ret;
@@ -95,15 +97,57 @@ int main(int argc, char **argv)
 	closedir(dir);
 #endif
 
-	cJSON_AddItemReferenceToObject(top, "company", cJSON_CreateString("SHENZHEN HIKEEN TECHNOLOGY CO.,LTD"));
-	cJSON_AddItemReferenceToObject(top, "version", cJSON_CreateString("CJSON " LIBVERSION));
-	cJSON_AddItemReferenceToObject(top, "tools version", cJSON_CreateString(GIT_VERSION));
-	cJSON_AddItemReferenceToObject(top, "author", cJSON_CreateString("longqi"));
-	cJSON_AddItemReferenceToObject(top, "email", cJSON_CreateString("1218715400@qq.com"));
+	// cJSON_AddItemReferenceToObject(top, "company", cJSON_CreateString("SHENZHEN HIKEEN TECHNOLOGY CO.,LTD"));
+	// cJSON_AddItemReferenceToObject(top, "version", cJSON_CreateString("CJSON " LIBVERSION));
+	// cJSON_AddItemReferenceToObject(top, "tools version", cJSON_CreateString(GIT_VERSION));
+	// cJSON_AddItemReferenceToObject(top, "author", cJSON_CreateString("longqi"));
+	// cJSON_AddItemReferenceToObject(top, "email", cJSON_CreateString("1218715400@qq.com"));
 	cJSON_AddItemToObject(top, "hikeentv", root);
 	// cJSON_AddItemToObject(root, "support", support);
 	cJSON_AddItemToObject(root, "config", config);
-
+// add order json
+	dir = opendir(order_path);
+	if( dir == NULL ) {
+		return ret;
+	}
+	while((dirent = readdir(dir))!=NULL) {
+		if( strcmp(".", dirent->d_name) == 0 || strcmp("..", dirent->d_name) == 0 ) continue ;
+		if(DT_ISDIR(dirent->d_type)) continue ;
+		len = strlen(dirent->d_name);
+		if( len > 5 && strcasecmp(".json", &dirent->d_name[len-5]) == 0 ) {
+			// printf("open %s\n", dirent->d_name);
+			sprintf(path, "%s/%s", order_path, dirent->d_name);
+			if(NULL != (fp = fopen(path, "r"))) {
+				fseek(fp, 0, SEEK_END);
+				size = (size_t ) ftell(fp) + 1;
+				fseek(fp, 0, SEEK_SET);
+				pbuf = (char *)malloc(size);
+				if(pbuf != NULL && (0 != fread(pbuf, 1, size, fp))) {
+					input=cJSON_Parse(pbuf);
+					if(input) {
+						object = cJSON_GetObjectItem(input,"config");
+						itemsize = cJSON_GetArraySize(object);
+						for(i=0;i<itemsize;i++) {
+							childobj = cJSON_GetArrayItem(object, i);
+							if(childobj) {
+								check = cJSON_GetObjectItem(config, childobj->string);
+								if(check != NULL) {
+									printf("open order path node <%s> is conflict\n", childobj->string);
+									continue;
+								}
+								cJSON_AddItemToArray(config, cJSON_Duplicate(childobj, 1));
+							}
+						}
+						cJSON_Delete(input);
+					}
+					free(pbuf);
+				}
+				fclose(fp);
+			}
+		}
+	}
+	closedir(dir);
+// end .. 
 // add all json
 	dir = opendir(input_path);
 	if( dir == NULL ) {
@@ -114,7 +158,7 @@ int main(int argc, char **argv)
 		if(DT_ISDIR(dirent->d_type)) continue ;
 		len = strlen(dirent->d_name);
 		if( len > 5 && strcasecmp(".json", &dirent->d_name[len-5]) == 0 ) {
-			printf("open %s\n", dirent->d_name);
+			// printf("open %s\n", dirent->d_name);
 			sprintf(path, "%s/%s", input_path, dirent->d_name);
 			if(NULL != (fp = fopen(path, "r"))) {
 				fseek(fp, 0, SEEK_END);
@@ -128,8 +172,14 @@ int main(int argc, char **argv)
 						itemsize = cJSON_GetArraySize(object);
 						for(i=0;i<itemsize;i++) {
 							childobj = cJSON_GetArrayItem(object, i);
-							if(childobj)
+							if(childobj) {
+								check = cJSON_GetObjectItem(config, childobj->string);
+								if(check != NULL) {
+									printf("node <%s> is already config in order dirent\n", childobj->string);
+									continue;
+								}
 								cJSON_AddItemToArray(config, cJSON_Duplicate(childobj, 1));
+							}
 						}
 						cJSON_Delete(input);
 					}
