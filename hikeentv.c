@@ -75,17 +75,23 @@ int main(int argc, char **argv) {
     FILE            *fp = NULL;
     cJSON           *json;
     __attribute__((unused)) char            *out;
-    char            line[8192] = {0};
+    char            *line;
     __attribute__((unused)) cJSON *main_object;
     __attribute__((unused)) cJSON *main_item;
     __attribute__((unused)) cJSON *sub_item;
     __attribute__((unused)) cJSON *object;
-
+    size_t sz;
     __attribute__((unused)) int i=0, j, size, sub_size;
 
 		if(NULL != (fp = fopen(argv[1], "r"))) {
-			while (0 != fread(line, 1, sizeof(line), fp)) {
+			fseek(fp, 0, SEEK_END);
+			sz = (size_t ) ftell(fp) + 1;
+			fseek(fp, 0, SEEK_SET);
+			line = (char *)malloc(sz);
+			if(line==NULL) return -2;
+			while (0 != fread(line, 1, sz, fp)) {
 				json=cJSON_Parse(line); /* 获取整个大的句柄 */
+				free(line);
 				out=cJSON_Print(json);  /* 这个是可以输出的。为获取的整个json的值 */
 				main_object = cJSON_GetObjectItem(json,"hikeentv");   /* 因为这个对象是个数组获取，且只有一个元素所以写下标为0获取*/
 
@@ -103,8 +109,9 @@ int main(int argc, char **argv) {
 				cJSON_ReplaceItemInObject(main_object, "config", cJSON_CreateString("hello"));
 				*/
 				out=cJSON_Print(json);
-				if(json==NULL) 
+				if(json==NULL) {
 					return -1;
+				}
 				printf("\n%s\n", out);
 				break;
 			#if 0

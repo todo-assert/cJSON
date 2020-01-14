@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	// cJSON_AddItemReferenceToObject(top, "tools version", cJSON_CreateString(GIT_VERSION));
 	// cJSON_AddItemReferenceToObject(top, "author", cJSON_CreateString("longqi"));
 	// cJSON_AddItemReferenceToObject(top, "email", cJSON_CreateString("1218715400@qq.com"));
-	cJSON_AddItemToObject(top, "hikeentv", root);
+	cJSON_AddItemToObject(top, "smarttv", root);
 	// cJSON_AddItemToObject(root, "support", support);
 	cJSON_AddItemToObject(root, "config", config);
 // add order json
